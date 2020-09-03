@@ -1,2 +1,2 @@
-const { start } = require('./newServer')
+const { start } = require('./server')
 start()

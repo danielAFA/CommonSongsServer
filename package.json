@@ -4,7 +4,6 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "babel src --out-dir dist",
     "dev": "nodemon --exec npm restart",
     "start": "node src/index.js"
   },
@@ -21,14 +20,6 @@
     "spotify-web-api-node": "^4.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.0.0",
-    "@babel/core": "^7.0.0",
-    "@babel/plugin-proposal-class-properties": "^7.0.0",
-    "@babel/plugin-proposal-object-rest-spread": "^7.0.0",
-    "@babel/preset-env": "^7.0.0",
-    "babel-core": "7.0.0-bridge.0",
-    "babel-eslint": "^8.2.1",
-    "babel-jest": "^23.4.2",
     "cross-env": "^7.0.2",
     "eslint": "^4.15.0",
     "eslint-config-prettier": "^2.9.0",
@@ -36,7 +27,6 @@
     "eslint-friendly-formatter": "^3.0.0",
     "eslint-loader": "^1.7.1",
     "eslint-plugin-import": "^2.13.0",
-    "eslint-plugin-jest": "^21.15.1",
     "eslint-plugin-node": "^7.0.1",
     "eslint-plugin-prettier": "^2.6.2",
     "eslint-plugin-promise": "^3.8.0",
