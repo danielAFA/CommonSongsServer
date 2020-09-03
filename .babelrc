@@ -1,4 +1,4 @@
-{
+/* {
   "presets": [
     ["@babel/env", {
       "targets": {
@@ -11,3 +11,4 @@
     "@babel/plugin-proposal-object-rest-spread"
   ]
 }
+ */

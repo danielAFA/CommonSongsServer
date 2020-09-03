@@ -76,8 +76,10 @@ app.get('/callback', (req, res) => {
   res.redirect(302, `http://localhost:${clientPort}`)
 })
 
-export const start = async () => {
+const start = async () => {
   app.listen(serverPort, () => {
     console.log(`Listening on http://localhost:${serverPort}`)
   })
 }
+
+exports.start = start

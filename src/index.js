@@ -1,2 +1,2 @@
-import { start } from './newServer'
+const { start } = require('./newServer')
 start()
