@@ -33,7 +33,9 @@ class UserTracks {
     )
 
     const instersection = user1Tracks.filter(user1Track =>
-      user2Tracks.some(y => user1Track.track.id === user2Track.track.id)
+      user2Tracks.some(
+        user2Track => user1Track.track.id === user2Track.track.id
+      )
     )
 
     this.intersection = instersection
