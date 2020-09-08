@@ -1,57 +1,74 @@
 class UserTracks {
   constructor() {
     this.userData = []
-    this.maxUsers = 2
-    this.currentUsers = 0
-    this.intersection = null
+    this.maxUsers = 10
+    this.numberUsers = 0
+    this.currentUser = null
   }
 
-  getCurrentUsers() {
-    return this.currentUsers
+  getNumberUsers() {
+    return this.numberUsers
   }
 
   getUserData() {
-    let users = {}
-    for (const elem of this.userData) {
-      users = { ...users, ...elem }
+    return this.userData
+  }
+
+  getUserIds() {
+    return this.userData.map(user => user.id)
+  }
+
+  getUser(id) {
+    for (const user of this.userData) {
+      if (user.id === id) return user
     }
-    return users
+    return null
   }
 
-  getIntersection() {
-    if (this.currentUsers !== this.maxUsers) return null
-    return this.intersection
+  getCurrentUser() {
+    return this.currentUser
   }
 
-  createIntersection() {
-    if (this.currentUsers < this.maxUsers) {
+  isIn(id) {
+    return this.userData.some(user => user.id === id)
+  }
+
+  generateIntersection(id2, id1 = this.currentUser.id) {
+    const matchingUsers = this.userData.filter(
+      user => user.id === id1 || user.id === id2
+    )
+
+    if (matchingUsers.length < 2) {
+      console.log('not enough matching users')
       return
     }
 
-    const [user1Tracks, user2Tracks] = this.userData.map(
-      (el, i) => this.userData[i][Object.keys(el)[0]]
+    const [user1Tracks, user2Tracks] = matchingUsers.map(user => user.tracks)
+
+    const instersection = user1Tracks.filter(track1 =>
+      user2Tracks.some(track2 => track1.track.id === track2.track.id)
     )
 
-    const instersection = user1Tracks.filter(user1Track =>
-      user2Tracks.some(
-        user2Track => user1Track.track.id === user2Track.track.id
-      )
-    )
-
-    this.intersection = instersection
+    return instersection
   }
 
-  setUser(user) {
+  addUser(user) {
     if (!user) {
       console.log('invalid user entered')
       return
     }
 
+    if (this.userData.some(userIn => userIn.id === user.id)) return
+
+    this.currentUser = user
     this.userData.push(user)
-    if (this.currentUsers >= this.maxUsers) {
+    this.numberUsers++
+
+    if (this.numberUsers > this.maxUsers) {
       this.userData.shift()
-    } else if (this.currentUsers < this.maxUsers) this.currentUsers++
-    this.createIntersection()
+      this.numberUsers--
+    }
+    console.log('user added')
   }
 }
 

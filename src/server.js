@@ -13,7 +13,6 @@ const client_id = process.env.CLIENT_ID
 const client_secret = process.env.CLIENT_SECRET
 const redirect_uri = `http://localhost:${serverPort}/callback`
 
-// credentials are optional
 const credentials = {
   clientId: client_id,
   clientSecret: client_secret,
@@ -24,9 +23,8 @@ const state = 'temporary-state'
 const scopes = ['user-library-read', 'user-read-private', 'user-read-email']
 const spotifyApi = new SpotifyWebApi(credentials)
 const userTracks = new UserTracks()
-const approveOnEach = true
 
-let authorizeURL = spotifyApi.createAuthorizeURL(scopes, state, approveOnEach)
+const authorizeURL = spotifyApi.createAuthorizeURL(scopes, state, true)
 let tokenExpiration = 0
 
 spotifyApi.setAccessToken(null)
@@ -38,42 +36,38 @@ app
   .use(json())
 
 const getUserTracks = async () => {
-  let totalTracks
-  let likedTracks = []
-  let limit = 50
-  let offset = 0
-  let user = {}
-  let userId
+  const {
+    body: { id }
+  } = await spotifyApi.getMe()
 
-  try {
-    if (!userId) {
-      const { body } = await spotifyApi.getMe()
-      userId = body.id
-    }
-  } catch (err) {
-    console.log('Something went wrong getting user!', err)
+  //if user data has been logged, return saved tracks
+  if (userTracks.isIn(id)) {
+    return userTracks.getUser(id).tracks
   }
 
+  //else, request and log id and tracks
+  const tracks = []
+  const tracksPerRequest = 50
+  let totalTracks
+  let offset = 0
+
   do {
-    try {
-      const { body } = await spotifyApi.getMySavedTracks({
-        limit: limit,
-        offset: offset
-      })
-      if (!totalTracks) totalTracks = body.total
-      likedTracks = likedTracks.concat(body.items)
-      offset += limit
-    } catch (err) {
-      console.log('Something went wrong getting tracks!', err)
-    }
+    const {
+      body: { items, total }
+    } = await spotifyApi.getMySavedTracks({
+      limit: tracksPerRequest,
+      offset: offset
+    })
+    tracks.push(...items)
+    offset += tracksPerRequest
+    totalTracks = total
   } while (offset < totalTracks)
 
-  user[userId] = likedTracks
-  userTracks.setUser(user)
-  console.log('all set for ')
-  console.log(Object.keys(userTracks.getUserData()))
+  userTracks.addUser({ id, tracks })
 
-  return likedTracks
+  console.log('current users: ' + userTracks.getUserIds().join(', '))
+
+  return tracks
 }
 
 const resetAuthorization = () => {
@@ -82,18 +76,17 @@ const resetAuthorization = () => {
   tokenExpiration = 0
 }
 
-app.get('/callback', (req, res) => {
-  spotifyApi
-    .authorizationCodeGrant(req.query.code)
-    .then(data => {
-      spotifyApi.setAccessToken(data.body['access_token'])
-      spotifyApi.setRefreshToken(data.body['refresh_token'])
-      tokenExpiration = data.body['expires_in']
-      console.log('user authorized')
-    })
-    .catch(err => {
-      console.log('Something went wrong authenticating!', err)
-    })
+app.get('/callback', async (req, res) => {
+  try {
+    const data = await spotifyApi.authorizationCodeGrant(req.query.code)
+    spotifyApi.setAccessToken(data.body['access_token'])
+    spotifyApi.setRefreshToken(data.body['refresh_token'])
+    tokenExpiration = data.body['expires_in']
+    console.log('user authorized')
+  } catch (err) {
+    console.log('Something went wrong authenticating!', err)
+  }
+
   res.redirect(302, `http://localhost:${clientPort}/`)
 })
 
@@ -104,18 +97,27 @@ app.get('/auth', (req, res) => {
   } else res.status(200).json({ authorized: true, authLink: authorizeURL })
 })
 
-app.get('/all_tracks', async (req, res) => {
-  const tracks = await getUserTracks()
-  const intersectionReady = userTracks.getCurrentUsers() === 2 ? true : false
-  res.status(200).json({ tracks, intersectionReady })
+app.get('/user_tracks', async (req, res) => {
+  try {
+    const tracks = await getUserTracks()
+    const intersectionReady = userTracks.getNumberUsers() >= 2 ? true : false
+    const filteredIds = userTracks
+      .getUserIds()
+      .filter(id => userTracks.getCurrentUser().id !== id)
+    res.status(200).json({ tracks, intersectionReady, filteredIds })
+  } catch (err) {
+    console.log('Something went wrong getting user tracks ', err)
+  }
 })
 
 app.get('/intersection', (req, res) => {
-  res.status(200).json(userTracks.getIntersection())
+  const { userId } = req.query
+  const intersection = userTracks.generateIntersection(userId)
+  res.status(200).json(intersection)
 })
 
 app.get('/reset', (req, res) => {
-  console.log('reset')
+  console.log('tokens reseted')
   resetAuthorization()
   res.status(200).json({ authorized: false, authLink: authorizeURL })
 })

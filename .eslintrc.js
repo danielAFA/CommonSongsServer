@@ -1,6 +1,6 @@
 module.exports = {
   parserOptions: {
-    sourceType: 'module'
+    ecmaVersion: 6
   },
   parser: 'babel-eslint',
   env: {
