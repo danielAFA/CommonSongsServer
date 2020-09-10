@@ -29,6 +29,10 @@ class UserTracks {
     return this.currentUser
   }
 
+  setCurrentUser(id) {
+    this.currentUser = this.getUser(id)
+  }
+
   isIn(id) {
     return this.userData.some(user => user.id === id)
   }
@@ -37,7 +41,6 @@ class UserTracks {
     const matchingUsers = this.userData.filter(
       user => user.id === id1 || user.id === id2
     )
-
     if (matchingUsers.length < 2) {
       console.log('not enough matching users')
       return

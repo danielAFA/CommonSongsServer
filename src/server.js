@@ -7,8 +7,8 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
 const SpotifyWebApi = require('spotify-web-api-node')
 const UserTracks = require('./UserTracks')
 
-const serverPort = require('../../localdata/local_ports').SERVER_PORT || 8888
-const clientPort = require('../../localdata/local_ports').CLIENT_PORT || 3000
+const serverPort = process.env.SERVER_PORT || 80
+const clientPort = process.env.CLIENT_PORT || 3000
 const client_id = process.env.CLIENT_ID
 const client_secret = process.env.CLIENT_SECRET
 const redirect_uri = `http://localhost:${serverPort}/callback`
@@ -42,10 +42,11 @@ const getUserTracks = async () => {
 
   //if user data has been logged, return saved tracks
   if (userTracks.isIn(id)) {
+    userTracks.setCurrentUser(id)
     return userTracks.getUser(id).tracks
   }
 
-  //else, request and log id and tracks
+  //else, log id and tracks
   const tracks = []
   const tracksPerRequest = 50
   let totalTracks
@@ -64,8 +65,6 @@ const getUserTracks = async () => {
   } while (offset < totalTracks)
 
   userTracks.addUser({ id, tracks })
-
-  console.log('current users: ' + userTracks.getUserIds().join(', '))
 
   return tracks
 }
@@ -104,6 +103,7 @@ app.get('/user_tracks', async (req, res) => {
     const filteredIds = userTracks
       .getUserIds()
       .filter(id => userTracks.getCurrentUser().id !== id)
+    console.log('Users available: ' + userTracks.getUserIds().join(', '))
     res.status(200).json({ tracks, intersectionReady, filteredIds })
   } catch (err) {
     console.log('Something went wrong getting user tracks ', err)
@@ -117,7 +117,7 @@ app.get('/intersection', (req, res) => {
 })
 
 app.get('/reset', (req, res) => {
-  console.log('tokens reseted')
+  console.log('tokens reset')
   resetAuthorization()
   res.status(200).json({ authorized: false, authLink: authorizeURL })
 })
