@@ -1,131 +1,124 @@
+const QueryString = require('querystring')
 const express = require('express')
 const cookieParser = require('cookie-parser')
-const { json } = require('body-parser')
-const path = require('path')
 const cors = require('cors')
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
-const SpotifyWebApi = require('spotify-web-api-node')
-const UserTracks = require('./UserTracks')
+const { json, urlencoded } = require('body-parser')
+const { connect } = require('./db/db')
+const apiMethods = require('./utils/apiMethods')
+const dbMethods = require('./utils/dbMethods')
+const tracksRouter = require('./tracks/router')
+
+require('dotenv').config()
 
 const serverPort = process.env.SERVER_PORT || 80
 const clientPort = process.env.CLIENT_PORT || 3000
-const client_id = process.env.CLIENT_ID
-const client_secret = process.env.CLIENT_SECRET
-const redirect_uri = `http://localhost:${serverPort}/callback`
-
-const credentials = {
-  clientId: client_id,
-  clientSecret: client_secret,
-  redirectUri: redirect_uri
-}
-
-const state = 'temporary-state'
-const scopes = ['user-library-read', 'user-read-private', 'user-read-email']
-const spotifyApi = new SpotifyWebApi(credentials)
-const userTracks = new UserTracks()
-
-const authorizeURL = spotifyApi.createAuthorizeURL(scopes, state, true)
-let tokenExpiration = 0
-
-spotifyApi.setAccessToken(null)
 
 const app = express()
+
 app
   .use(cors())
   .use(cookieParser())
-  .use(json())
+  .use(json({ limit: '50mb', extended: true }))
+  .use(urlencoded({ parameterLimit: 100000, limit: '50mb', extended: true }))
 
-const getUserTracks = async () => {
-  const {
-    body: { id }
-  } = await spotifyApi.getMe()
+const getUserTracks = async accessT => {
+  try {
+    const id = await apiMethods.requestUserId(accessT)
+    const { data: userTracks } = await dbMethods.getUser(id)
 
-  //if user data has been logged, return saved tracks
-  if (userTracks.isIn(id)) {
-    userTracks.setCurrentUser(id)
-    return userTracks.getUser(id).tracks
+    return userTracks
+      ? userTracks
+      : { id, tracks: await apiMethods.requestUserTracks(accessT) }
+  } catch (err) {
+    console.log(`something went wrong getting user tracks`, err)
   }
-
-  //else, log id and tracks
-  const tracks = []
-  const tracksPerRequest = 50
-  let totalTracks
-  let offset = 0
-
-  do {
-    const {
-      body: { items, total }
-    } = await spotifyApi.getMySavedTracks({
-      limit: tracksPerRequest,
-      offset: offset
-    })
-    tracks.push(...items)
-    offset += tracksPerRequest
-    totalTracks = total
-  } while (offset < totalTracks)
-
-  userTracks.addUser({ id, tracks })
-
-  return tracks
 }
 
-const resetAuthorization = () => {
-  spotifyApi.resetAccessToken()
-  spotifyApi.resetRefreshToken()
-  tokenExpiration = 0
+const generateIntersection = ({ user1Tracks, user2Tracks }) => {
+  try {
+    const intersection = user1Tracks.filter(track1 =>
+      user2Tracks.some(track2 => track1.track.id === track2.track.id)
+    )
+    return intersection
+  } catch (err) {
+    console.log(`something went wrong generating intersection`, err)
+  }
 }
+
+app.use('/tracks', tracksRouter)
+
+app.get('/auth', (req, res) => {
+  console.log('authorization url requested')
+  res.status(200).json({ authUrl: apiMethods.generateAuthUrl() })
+})
 
 app.get('/callback', async (req, res) => {
   try {
-    const data = await spotifyApi.authorizationCodeGrant(req.query.code)
-    spotifyApi.setAccessToken(data.body['access_token'])
-    spotifyApi.setRefreshToken(data.body['refresh_token'])
-    tokenExpiration = data.body['expires_in']
+    const { accessT, refreshT } = apiMethods.requestTokens()
+    const query = QueryString.stringify({
+      aT: accessT,
+      rT: refreshT
+    })
     console.log('user authorized')
+    res.redirect(302, `http://localhost:${clientPort}/?${query}`)
   } catch (err) {
     console.log('Something went wrong authenticating!', err)
   }
-
-  res.redirect(302, `http://localhost:${clientPort}/`)
 })
 
-app.get('/auth', (req, res) => {
-  if (tokenExpiration <= 0) {
-    console.log('authorization url sent')
-    res.status(200).json({ authorized: false, authLink: authorizeURL })
-  } else res.status(200).json({ authorized: true, authLink: authorizeURL })
-})
-
-app.get('/user_tracks', async (req, res) => {
+app.get('/users', async (req, res) => {
   try {
-    const tracks = await getUserTracks()
-    const intersectionReady = userTracks.getNumberUsers() >= 2 ? true : false
-    const filteredIds = userTracks
-      .getUserIds()
-      .filter(id => userTracks.getCurrentUser().id !== id)
-    console.log('Users available: ' + userTracks.getUserIds().join(', '))
-    res.status(200).json({ tracks, intersectionReady, filteredIds })
+    const userIds = await dbMethods.getUserIds()
+    res.status(200).json({ userIds })
   } catch (err) {
     console.log('Something went wrong getting user tracks ', err)
   }
 })
 
-app.get('/intersection', (req, res) => {
-  const { userId } = req.query
-  const intersection = userTracks.generateIntersection(userId)
-  res.status(200).json(intersection)
+app.get('/my_tracks', async (req, res) => {
+  try {
+    const { accessT } = req.params
+    const { userData } = await getUserTracks(accessT)
+    const userIds = await dbMethods.getUserIds()
+
+    const availableUsers = userIds.filter(id => id !== userData.userId)
+
+    res.status(200).json({ userData, availableUsers })
+  } catch (err) {
+    console.log('Something went wrong getting user tracks ', err)
+  }
 })
 
-app.get('/reset', (req, res) => {
-  console.log('tokens reset')
-  resetAuthorization()
-  res.status(200).json({ authorized: false, authLink: authorizeURL })
+app.get('/user_tracks', async (req, res) => {
+  try {
+    const { accessT } = req.params
+    const { userData } = await getUserTracks(accessT)
+    const userIds = await dbMethods.getUserIds()
+
+    const availableUsers = userIds.filter(id => id !== userData.userId)
+
+    res.status(200).json({ userData, availableUsers })
+  } catch (err) {
+    console.log('Something went wrong getting user tracks ', err)
+  }
+})
+
+app.get('/intersection', async (req, res) => {
+  const { userId1, userId2 } = req.query
+  const userTracks = await dbMethods.getManyUsers([userId1, userId2])
+  const intersection = generateIntersection(userTracks)
+  res.status(200).json({ intersection })
 })
 
 const start = async () => {
-  app.listen(serverPort, () => {
-    console.log(`Listening on http://localhost:${serverPort}`)
-  })
+  try {
+    connect()
+    app.listen(serverPort, () => {
+      console.log(`Listening on http://localhost:${serverPort}`)
+    })
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 exports.start = start

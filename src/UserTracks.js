@@ -48,11 +48,11 @@ class UserTracks {
 
     const [user1Tracks, user2Tracks] = matchingUsers.map(user => user.tracks)
 
-    const instersection = user1Tracks.filter(track1 =>
+    const intersection = user1Tracks.filter(track1 =>
       user2Tracks.some(track2 => track1.track.id === track2.track.id)
     )
 
-    return instersection
+    return intersection
   }
 
   addUser(user) {
