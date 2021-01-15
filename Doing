@@ -1,8 +1,4 @@
 Working on:
-    - Test getOne, getMany methods
-    - Receive tokens from frontend 
+    - Test getOne, getMany method
+    - Make current backend work with frontend
     
-    
-    Remember: 
-        - intersection not possible before completely replacing class
-        - userTracks not updated if id in db

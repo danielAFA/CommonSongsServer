@@ -1,4 +1,4 @@
-const { find } = require('../tracks/model')
+const { find } = require('./model')
 
 const getOne = model => async (req, res) => {
   try {

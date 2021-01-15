@@ -57,7 +57,7 @@ const getManyUsers = async userIds => {
     } = await axios.get(`http://localhost:${serverPort}/tracks/${queryIds}`)
     return userTracks
   } catch (err) {
-    console.log(`something went wrong getting user count`, err)
+    console.log(`something went wrong getting users`, err)
   }
 }
 

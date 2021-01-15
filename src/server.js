@@ -6,7 +6,7 @@ const { json, urlencoded } = require('body-parser')
 const { connect } = require('./db/db')
 const apiMethods = require('./utils/apiMethods')
 const dbMethods = require('./utils/dbMethods')
-const tracksRouter = require('./tracks/router')
+const tracksRouter = require('./db/tracks/router')
 
 require('dotenv').config()
 
@@ -54,7 +54,7 @@ app.get('/auth', (req, res) => {
 
 app.get('/callback', async (req, res) => {
   try {
-    const { accessT, refreshT } = apiMethods.requestTokens()
+    const { accessT, refreshT } = await apiMethods.requestTokens(req.query.code)
     const query = QueryString.stringify({
       aT: accessT,
       rT: refreshT
