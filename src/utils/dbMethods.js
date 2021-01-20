@@ -20,18 +20,16 @@ const getUserCount = async () => {
   try {
     const {
       data: { data: userCount }
-    } = await axios.get(`http://localhost:${serverPort}/tracks/count`)
+    } = await axios.get(`http://localhost:${serverPort}/tracks/user_count`)
     return userCount
   } catch (err) {
     console.log(`something went wrong getting user count`, err)
   }
 }
 
-const createUser = async user => {
+const storeUser = async user => {
   try {
-    await axios.post(`http://localhost:${serverPort}/tracks/`, {
-      ...user
-    })
+    await axios.post(`http://localhost:${serverPort}/tracks/store_user`, user)
   } catch (err) {
     console.log(`something went wrong storing user`, err)
   }
@@ -39,22 +37,24 @@ const createUser = async user => {
 
 const getUser = async id => {
   try {
-    const queryId = QueryString.stringify({ id: id })
     const {
       data: { data: userTracks }
-    } = await axios.get(`http://localhost:${serverPort}/tracks/${queryId}`)
+    } = await axios.get(`http://localhost:${serverPort}/tracks/`, {
+      params: id
+    })
     return userTracks
   } catch (err) {
-    console.log(`something went wrong getting user count`, err)
+    console.log(`something went wrong getting user`, err)
   }
 }
 
 const getManyUsers = async userIds => {
   try {
-    const queryIds = QueryString.stringify({ id1: userIds[0], id2: userIds[1] })
     const {
       data: { data: userTracks }
-    } = await axios.get(`http://localhost:${serverPort}/tracks/${queryIds}`)
+    } = await axios.get(`http://localhost:${serverPort}/tracks/users`, {
+      params: { id1: userIds[0], id2: userIds[1] }
+    })
     return userTracks
   } catch (err) {
     console.log(`something went wrong getting users`, err)
@@ -64,7 +64,7 @@ const getManyUsers = async userIds => {
 const dbMethods = {
   getUser,
   getManyUsers,
-  createUser,
+  storeUser,
   getUserCount,
   getUserIds
 }

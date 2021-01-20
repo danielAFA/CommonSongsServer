@@ -19,13 +19,8 @@ const requestTokens = async code => {
   return {
     accessT: body['access_token'],
     refreshT: body['refresh_token'],
-    refreshTExpiration: body['expires_in']
+    expiresIn: body['expires_in']
   }
-}
-
-const resetTokens = spotifyApi => {
-  spotifyApi.resetAccessToken()
-  spotifyApi.resetRefreshToken()
 }
 
 const generateAuthUrl = () => {
@@ -34,6 +29,31 @@ const generateAuthUrl = () => {
 }
 
 const requestUserTracks = async accessT => {
+  const filterFields = trackList => {
+    const filterAlbum = album =>
+      (({ type, name, images }) => ({
+        name,
+        type,
+        images
+      }))(album)
+
+    const filterArtist = artist =>
+      (({ name, type }) => ({
+        name,
+        type
+      }))(artist)
+
+    const filterTrack = track =>
+      (({ album, name, artists, id, uri }) => ({
+        album: filterAlbum(album),
+        name,
+        artists: artists.map(artist => filterArtist(artist)),
+        id,
+        uri
+      }))(track)
+
+    return trackList.map(elem => filterTrack(elem.track))
+  }
   const spotifyApi = new SpotifyWebApi(credentials)
   spotifyApi.setAccessToken(accessT)
 
@@ -54,18 +74,7 @@ const requestUserTracks = async accessT => {
     totalTracks = total
   } while (offset < totalTracks)
 
-  const keepFields = ['album', 'name', 'artists']
-
-  const reducedTracks = tracks.map(track =>
-    Object.keys(track.track)
-      .filter(key => keepFields.includes(key))
-      .reduce((obj, key) => {
-        obj[key] = track.track[key]
-        return obj
-      }, {})
-  )
-
-  return reducedTracks
+  return filterFields(tracks)
 }
 
 const requestUserId = async accessT => {
