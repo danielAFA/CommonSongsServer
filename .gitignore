@@ -3,4 +3,6 @@ dist
 web-api-auth-examples
 .env
 .babelrc
-Doing
+to-do.txt
+.eslintrc.js
+nodemon.json
