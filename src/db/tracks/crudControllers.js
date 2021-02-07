@@ -110,10 +110,8 @@ const updateOne = model => async (req, res) => {
 const removeOne = model => async (req, res) => {
   try {
     const removed = await model.findOneAndRemove({
-      createdBy: req.user._id,
-      _id: req.params.id
+      userId: req.query.userId
     })
-
     if (!removed) {
       return res.status(400).end()
     }

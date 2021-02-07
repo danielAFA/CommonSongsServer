@@ -1,4 +1,3 @@
-const QueryString = require('querystring')
 const axios = require('axios')
 require('dotenv').config()
 
@@ -27,14 +26,6 @@ const getUserCount = async () => {
   }
 }
 
-const storeUser = async user => {
-  try {
-    await axios.post(`http://localhost:${serverPort}/tracks/store_user`, user)
-  } catch (err) {
-    console.log(`something went wrong storing user`, err)
-  }
-}
-
 const getUser = async id => {
   try {
     const {
@@ -60,13 +51,31 @@ const getManyUsers = async userIds => {
     console.log(`something went wrong getting users`, err)
   }
 }
+const storeUser = async user => {
+  try {
+    await axios.post(`http://localhost:${serverPort}/tracks/store_user`, user)
+  } catch (err) {
+    console.log(`something went wrong storing user`, err)
+  }
+}
+
+const removeUser = async userId => {
+  try {
+    await axios.delete(`http://localhost:${serverPort}/tracks/user`, {
+      params: { userId }
+    })
+  } catch (err) {
+    console.log(`something went wrong removing user`, err)
+  }
+}
 
 const dbMethods = {
   getUser,
   getManyUsers,
   storeUser,
   getUserCount,
-  getUserIds
+  getUserIds,
+  removeUser
 }
 
 module.exports = dbMethods

@@ -13,7 +13,10 @@ router.route('/user_count').get(controllers.getCount)
 router.route('/ids').get(controllers.getAllIds)
 
 // /tracks/:id
-router.route('/user').get(controllers.getOne)
+router
+  .route('/user')
+  .get(controllers.getOne)
+  .delete(controllers.removeOne)
 
 // /tracks/:id1/id2
 router.route('/users').get(controllers.getMany)

@@ -3,8 +3,14 @@ require('dotenv').config()
 
 const serverPort = process.env.SERVER_PORT || 80
 
-const state = 'temporary-state'
-const scopes = ['user-library-read', 'user-read-private', 'user-read-email']
+const state = 'none'
+const scopes = [
+  'user-library-read',
+  'user-read-private',
+  'user-read-email',
+  'playlist-modify-private',
+  'playlist-modify-public'
+]
 const redirect_uri = `http://localhost:${serverPort}/callback`
 
 const credentials = {
@@ -91,11 +97,37 @@ const requestUserId = async accessT => {
   }
 }
 
+const createPlaylist = async ({
+  accessT,
+  userId,
+  uris,
+  title,
+  publicPlaylist
+}) => {
+  try {
+    const spotifyApi = new SpotifyWebApi(credentials)
+    spotifyApi.setAccessToken(accessT)
+    const {
+      body: { id, external_urls }
+    } = await spotifyApi.createPlaylist(userId, title, {
+      description: 'Created using Spotialike',
+      public: publicPlaylist
+    })
+    console.log(id, external_urls)
+    await spotifyApi.addTracksToPlaylist(id, uris)
+    console.log(`${title} playlist created`)
+    return external_urls
+  } catch (err) {
+    console.error(`something went wrong creating playlist`, err)
+  }
+}
+
 const spotifyMethods = {
   requestTokens,
   requestUserId,
   requestUserTracks,
-  generateAuthUrl
+  generateAuthUrl,
+  createPlaylist
 }
 
 module.exports = spotifyMethods

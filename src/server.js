@@ -36,9 +36,8 @@ app.get('/callback', async (req, res) => {
       rT: refreshT
     })
     res.redirect(302, `http://localhost:${clientPort}/?${query}`)
-    console.log('user authorized')
   } catch (err) {
-    console.log('Something went wrong authenticating!', err)
+    console.log('Something went wrong authenticating', err)
     res.redirect(302, `http://localhost:${clientPort}/`)
   }
 })
@@ -69,7 +68,6 @@ app.get('/store', async (req, res) => {
     const userId = await apiMethods.requestUserId(accessT)
     const tracks = await apiMethods.requestUserTracks(accessT)
     await dbMethods.storeUser({ userId, tracks })
-    console.log(`user ${userId} stored`)
     res.status(200).json({ userId })
   } catch (err) {
     console.log('Something went wrong storing user tracks ', err)
@@ -88,6 +86,24 @@ app.get('/intersection', async (req, res) => {
     res.status(200).json({ intersection })
   } catch (err) {
     console.log('Something went wrong getting intersection ', err)
+  }
+})
+
+app.get('/playlist', async (req, res) => {
+  try {
+    const { spotify: spotifyUrl } = await apiMethods.createPlaylist(req.query)
+    res.status(200).json({ spotifyUrl })
+  } catch (err) {
+    console.log('Something went wrong requesting playlist creation ', err)
+  }
+})
+
+app.delete('/remove', async (req, res) => {
+  try {
+    await dbMethods.removeUser(req.query.userId)
+    res.status(200).send()
+  } catch (err) {
+    console.log(`Something went wrong removing user ${req.query.userId}`, err)
   }
 })
 
